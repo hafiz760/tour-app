@@ -35,7 +35,10 @@ export function UserMenu({ user }: UserMenuProps) {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-zinc-100 mx-2" />
-                <DropdownMenuItem className="rounded-2xl font-black text-xs uppercase tracking-widest py-3 px-4 focus:bg-zinc-900 focus:text-white transition-colors cursor-pointer flex items-center gap-3" onClick={() => signOut()}>
+                <DropdownMenuItem
+                    className="rounded-2xl font-black text-xs uppercase tracking-widest py-3 px-4 focus:bg-zinc-900 focus:text-white transition-colors cursor-pointer flex items-center gap-3"
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                >
                     <LogOut className="w-4 h-4" />
                     Log out
                 </DropdownMenuItem>
