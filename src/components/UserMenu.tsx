@@ -20,7 +20,7 @@ export function UserMenu({ user }: UserMenuProps) {
 
     const handleSignOut = async () => {
         setIsLoggingOut(true);
-        await signOut({ callbackUrl: process.env.NEXT_PUBLIC_BASE_URL + '/login' });
+        await signOut({ callbackUrl: '/login' });
     };
 
     return (
