@@ -1,9 +1,7 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { signOut } from 'next-auth/react';
+import { UserMenu } from './UserMenu';
 
 export default async function Navbar() {
     const session = await auth();
@@ -21,32 +19,16 @@ export default async function Navbar() {
                 </Link>
 
                 <div className="flex items-center gap-2">
-                    {session ? (
+                    {session?.user ? (
                         <div className="flex items-center gap-3">
                             <span className="hidden sm:inline-block text-[10px] font-black uppercase text-zinc-400">
-                                {session.user?.name}
+                                {session.user.name}
                             </span>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 border-2 border-zinc-100 hover:border-black transition-all">
-                                        <Avatar className="h-full w-full">
-                                            <AvatarImage src={session.user?.image || ''} alt={session.user?.name || ''} />
-                                            <AvatarFallback className="bg-zinc-900 text-white font-bold">
-                                                {session.user?.name?.charAt(0)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56 rounded-2xl border-none shadow-2xl p-2" align="end" forceMount>
-                                    <DropdownMenuItem className="rounded-xl font-bold py-3" onClick={() => signOut()}>
-                                        Log out
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <UserMenu user={session.user} />
                         </div>
                     ) : (
-                        <Link href="/login">
-                            <Button size="sm" className="rounded-full bg-black text-white px-6 font-bold h-10">
+                        <Link href="/api/auth/signin">
+                            <Button size="sm" className="rounded-full bg-black text-white px-6 font-black text-xs uppercase tracking-widest h-10 shadow-lg active:scale-95 transition-all">
                                 Sign In
                             </Button>
                         </Link>

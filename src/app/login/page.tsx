@@ -10,10 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -43,29 +45,44 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex h-[80vh] items-center justify-center">
-            <Card className="w-full max-w-sm">
-                <CardHeader>
-                    <CardTitle className="text-2xl">Login</CardTitle>
-                    <CardDescription>Enter your email below to login</CardDescription>
+        <div className="flex min-h-[80vh] items-center justify-center p-4">
+            <Card className="w-full max-w-sm border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
+                <CardHeader className="pt-10 pb-6 px-8 space-y-2">
+                    <CardTitle className="text-4xl font-black tracking-tighter text-black uppercase">Login</CardTitle>
+                    <CardDescription className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Welcome back to Zash</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6 px-8 pb-8">
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" name="email" type="email" required placeholder="m@example.com" />
+                            <Label htmlFor="email" className="text-[10px] font-black uppercase text-zinc-400 tracking-widest px-1">Email Address</Label>
+                            <Input id="email" name="email" type="email" required placeholder="name@example.com" className="h-12 bg-zinc-50 border-zinc-100 rounded-2xl px-5 font-bold focus:ring-2 focus:ring-black/5" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input id="password" name="password" type="password" required />
+                            <Label htmlFor="password" className="text-[10px] font-black uppercase text-zinc-400 tracking-widest px-1">Password</Label>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    className="h-12 bg-zinc-50 border-zinc-100 rounded-2xl px-5 pr-12 font-bold focus:ring-2 focus:ring-black/5"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-2">
-                        <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? 'Logging in...' : 'Login'}
+                    <CardFooter className="flex flex-col gap-4 px-8 pb-10">
+                        <Button type="submit" className="w-full h-14 rounded-full bg-black text-white font-black text-lg shadow-xl shadow-black/10 active:scale-95 transition-all" disabled={loading}>
+                            {loading ? 'LOGGING IN...' : 'LOGIN'}
                         </Button>
-                        <p className="text-sm text-center text-muted-foreground">
-                            Don't have an account? <Link href="/signup" className="underline">Sign up</Link>
+                        <p className="text-center text-xs font-bold text-zinc-500 uppercase tracking-tight">
+                            Don't have an account? <Link href="/signup" className="text-black underline underline-offset-4 hover:text-zinc-600 transition-colors">Sign up</Link>
                         </p>
                     </CardFooter>
                 </form>
