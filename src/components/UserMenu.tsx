@@ -1,10 +1,11 @@
 'use client';
+import { useState } from 'react';
 
-import { signOut } from 'next-auth/react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
 interface UserMenuProps {
     user: {
@@ -15,6 +16,13 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user }: UserMenuProps) {
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleSignOut = async () => {
+        setIsLoggingOut(true);
+        await signOut({ callbackUrl: window.location.origin + '/login' });
+    };
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -36,11 +44,12 @@ export function UserMenu({ user }: UserMenuProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-zinc-100 mx-2" />
                 <DropdownMenuItem
-                    className="rounded-2xl font-black text-xs uppercase tracking-widest py-3 px-4 focus:bg-zinc-900 focus:text-white transition-colors cursor-pointer flex items-center gap-3"
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="rounded-2xl font-black text-xs uppercase tracking-widest py-3 px-4 flex items-center gap-3 hover:bg-zinc-900 hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleSignOut}
+                    disabled={isLoggingOut}
                 >
                     <LogOut className="w-4 h-4" />
-                    Log out
+                    {isLoggingOut ? 'Logging out...' : 'Log out'}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

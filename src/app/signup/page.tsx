@@ -48,7 +48,7 @@ export default function SignupPage() {
                     <CardTitle className="text-4xl font-black tracking-tighter text-black uppercase">Sign Up</CardTitle>
                     <CardDescription className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Create an account to manage tours</CardDescription>
                 </CardHeader>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} method="POST">
                     <CardContent className="space-y-6 px-8 pb-8">
                         <div className="space-y-2">
                             <Label htmlFor="name" className="text-[10px] font-black uppercase text-zinc-400 tracking-widest px-1">Full Name</Label>

@@ -51,7 +51,7 @@ export default function LoginPage() {
                     <CardTitle className="text-4xl font-black tracking-tighter text-black uppercase">Login</CardTitle>
                     <CardDescription className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Welcome back to Zash</CardDescription>
                 </CardHeader>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} method="POST">
                     <CardContent className="space-y-6 px-8 pb-8">
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-[10px] font-black uppercase text-zinc-400 tracking-widest px-1">Email Address</Label>
