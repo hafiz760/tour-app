@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns";
 
 export const ReportView = forwardRef(({ tour }: { tour: any }, ref: any) => {
-    // Calculate logic
-    // Dynamic calculations to ensure accuracy
+
+    console.log(tour)
     const total = tour.expenses?.reduce((sum: number, exp: any) => sum + (exp.price || 0), 0) || 0;
     const budget = tour.totalBudget || 0;
     const balance = budget - total;
@@ -13,6 +13,7 @@ export const ReportView = forwardRef(({ tour }: { tour: any }, ref: any) => {
 
     // Per Head Share based on TOTAL BUDGET (User's target)
     const perHeadTarget = memberCount > 0 ? Math.ceil(budget / memberCount) : 0;
+    console.log(perHeadTarget)
     // Actual average spend per head (for reference)
     const perHeadActual = memberCount > 0 ? Math.ceil(total / memberCount) : 0;
 

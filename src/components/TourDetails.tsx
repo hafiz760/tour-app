@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -23,6 +23,8 @@ export function TourDetails({ tour }: { tour: any }) {
     const componentRef = useRef<HTMLDivElement>(null);
     const [expenseOpen, setExpenseOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [editingExpenseIndex, setEditingExpenseIndex] = useState<number | null>(null);
+    const [defaultExpenseValues, setDefaultExpenseValues] = useState<any>(null);
 
     // Dynamic total calculation for consistency
     const totalSpent = tour.expenses?.reduce((sum: number, exp: any) => sum + (exp.price || 0), 0) || 0;
@@ -43,43 +45,126 @@ export function TourDetails({ tour }: { tour: any }) {
             name: data.name,
             price: Number(data.price),
             category: data.category,
-            paidBy: 'Pool',
-            date: new Date(),
+            paidBy: data.paidBy || 'Pool',
+            date: editingExpenseIndex !== null ? tour.expenses[editingExpenseIndex].date : new Date(),
         };
 
-        const updatedExpenses = [...(tour.expenses || []), newExpense];
+        let updatedExpenses = [...(tour.expenses || [])];
+        let updatedMembers = [...(tour.members || [])];
+
+        if (editingExpenseIndex !== null) {
+            // EDIT MODE
+            const oldExpense = tour.expenses[editingExpenseIndex];
+
+            // 1. Revert old payment effect
+            if (oldExpense.paidBy && oldExpense.paidBy !== 'Pool') {
+                const oldMemberIndex = updatedMembers.findIndex((m: any) => m.name === oldExpense.paidBy);
+                if (oldMemberIndex !== -1) {
+                    updatedMembers[oldMemberIndex] = {
+                        ...updatedMembers[oldMemberIndex],
+                        amountPaid: (updatedMembers[oldMemberIndex].amountPaid || 0) - oldExpense.price
+                    };
+                }
+            }
+
+            // 2. Apply new payment effect
+            if (newExpense.paidBy && newExpense.paidBy !== 'Pool') {
+                const newMemberIndex = updatedMembers.findIndex((m: any) => m.name === newExpense.paidBy);
+                if (newMemberIndex !== -1) {
+                    updatedMembers[newMemberIndex] = {
+                        ...updatedMembers[newMemberIndex],
+                        amountPaid: (updatedMembers[newMemberIndex].amountPaid || 0) + newExpense.price
+                    };
+                }
+            }
+
+            updatedExpenses[editingExpenseIndex] = newExpense;
+
+        } else {
+            // ADD MODE
+            if (newExpense.paidBy && newExpense.paidBy !== 'Pool') {
+                const memberIndex = updatedMembers.findIndex((m: any) => m.name === newExpense.paidBy);
+                if (memberIndex !== -1) {
+                    updatedMembers[memberIndex] = {
+                        ...updatedMembers[memberIndex],
+                        amountPaid: (updatedMembers[memberIndex].amountPaid || 0) + newExpense.price
+                    };
+                }
+            }
+            updatedExpenses.push(newExpense);
+        }
 
         try {
             const res = await fetch(`/api/tours/${tour._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expenses: updatedExpenses })
+                body: JSON.stringify({
+                    expenses: updatedExpenses,
+                    members: updatedMembers
+                })
             });
             if (res.ok) {
-                toast.success('Expense Added');
+                toast.success(editingExpenseIndex !== null ? 'Expense Updated' : 'Expense Added');
                 setExpenseOpen(false);
+                setEditingExpenseIndex(null);
+                setDefaultExpenseValues(null);
                 router.refresh();
             } else {
-                toast.error('Failed to add expense');
+                toast.error('Failed to save expense');
             }
         } catch (e) {
-            toast.error('Error adding expense');
+            toast.error('Error saving expense');
         } finally {
             setLoading(false);
         }
     };
 
+    const handleEditExpense = (index: number) => {
+        const expenseToEdit = tour.expenses[(tour.expenses?.length || 0) - 1 - index];
+        const originalIndex = (tour.expenses?.length || 0) - 1 - index;
+
+        setEditingExpenseIndex(originalIndex);
+        setDefaultExpenseValues(expenseToEdit);
+        setExpenseOpen(true);
+    }
+
+    const handleOpenChange = (open: boolean) => {
+        setExpenseOpen(open);
+        if (!open) {
+            setEditingExpenseIndex(null);
+            setDefaultExpenseValues(null);
+        }
+    }
+
     const handleDeleteExpense = async (index: number) => {
         if (!confirm('Are you sure you want to delete this expense?')) return;
 
         const realIndex = (tour.expenses?.length || 0) - 1 - index;
+        const expenseToDelete = tour.expenses[realIndex];
+
+        // Remove expense
         const updatedExpenses = tour.expenses.filter((_: any, i: number) => i !== realIndex);
+
+        // Revert member balance if needed
+        let updatedMembers = [...(tour.members || [])];
+        if (expenseToDelete.paidBy && expenseToDelete.paidBy !== 'Pool') {
+            const memberIndex = updatedMembers.findIndex((m: any) => m.name === expenseToDelete.paidBy);
+            if (memberIndex !== -1) {
+                updatedMembers[memberIndex] = {
+                    ...updatedMembers[memberIndex],
+                    amountPaid: (updatedMembers[memberIndex].amountPaid || 0) - expenseToDelete.price
+                };
+            }
+        }
 
         try {
             const res = await fetch(`/api/tours/${tour._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expenses: updatedExpenses })
+                body: JSON.stringify({
+                    expenses: updatedExpenses,
+                    members: updatedMembers
+                })
             });
             if (res.ok) {
                 toast.success('Expense Deleted');
@@ -189,6 +274,7 @@ export function TourDetails({ tour }: { tour: any }) {
                                         <div className="overflow-hidden space-y-0.5">
                                             <div className="font-bold text-zinc-900 truncate">{m.name}</div>
                                             <div className="text-xs text-zinc-400 font-bold truncate tracking-tight">{m.phone || m.email || 'No contact info'}</div>
+                                            <div className="text-xs text-indigo-500 font-bold truncate tracking-tight">Paid: {tour.currency} {m.amountPaid?.toLocaleString()}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -200,7 +286,7 @@ export function TourDetails({ tour }: { tour: any }) {
                 <TabsContent value="expenses" className="space-y-4 mt-0">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400">Expenses Log</h3>
-                        <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
+                        <Dialog open={expenseOpen} onOpenChange={handleOpenChange}>
                             <DialogTrigger asChild>
                                 <Button size="sm" className="rounded-full bg-black hover:bg-zinc-800 text-white font-black h-11 px-6 shadow-xl active:scale-95 transition-all border-2 border-white/10">
                                     <Plus className="w-5 h-5 mr-2" /> Add Expense
@@ -208,22 +294,39 @@ export function TourDetails({ tour }: { tour: any }) {
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[425px] bg-white rounded-[2rem] border-none shadow-2xl p-8">
                                 <DialogHeader>
-                                    <DialogTitle className="text-2xl font-black text-zinc-900">Add Expense</DialogTitle>
-                                    <DialogDescription className="font-medium text-zinc-400">Log a new trip expense here.</DialogDescription>
+                                    <DialogTitle className="text-2xl font-black text-zinc-900">
+                                        {editingExpenseIndex !== null ? 'Edit Expense' : 'Add Expense'}
+                                    </DialogTitle>
+                                    <DialogDescription className="font-medium text-zinc-400">
+                                        {editingExpenseIndex !== null ? 'Update the details of this expense.' : 'Log a new trip expense here.'}
+                                    </DialogDescription>
                                 </DialogHeader>
-                                <form onSubmit={handleAddExpense} className="space-y-5 mt-6">
+                                <form onSubmit={handleAddExpense} className="space-y-5 mt-6" key={editingExpenseIndex !== null ? 'edit' : 'add'}>
                                     <div className="grid gap-2">
                                         <Label className="font-bold text-zinc-600 px-1">What was it for?</Label>
-                                        <Input name="name" required placeholder="Dinner at Monal..." className="rounded-2xl h-12 bg-zinc-50 border-zinc-100 px-5 font-bold" />
+                                        <Input
+                                            name="name"
+                                            required
+                                            placeholder="Dinner at Monal..."
+                                            className="rounded-2xl h-12 bg-zinc-50 border-zinc-100 px-5 font-bold"
+                                            defaultValue={defaultExpenseValues?.name}
+                                        />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label className="font-bold text-zinc-600 px-1">Amount</Label>
-                                            <Input name="price" type="number" required placeholder="0.00" className="rounded-2xl h-12 bg-zinc-50 border-zinc-100 px-5 font-bold" />
+                                            <Input
+                                                name="price"
+                                                type="number"
+                                                required
+                                                placeholder="0.00"
+                                                className="rounded-2xl h-12 bg-zinc-50 border-zinc-100 px-5 font-bold"
+                                                defaultValue={defaultExpenseValues?.price}
+                                            />
                                         </div>
                                         <div className="grid gap-2">
                                             <Label className="font-bold text-zinc-600 px-1">Category</Label>
-                                            <Select name="category" defaultValue="Food">
+                                            <Select name="category" defaultValue={defaultExpenseValues?.category || "Food"}>
                                                 <SelectTrigger className="rounded-2xl h-12 bg-zinc-50 border-zinc-100 px-5 font-bold"><SelectValue /></SelectTrigger>
                                                 <SelectContent className="rounded-2xl border-none shadow-xl">
                                                     <SelectItem value="Food">Food 🍔</SelectItem>
@@ -234,8 +337,26 @@ export function TourDetails({ tour }: { tour: any }) {
                                             </Select>
                                         </div>
                                     </div>
+
+                                    <div className="grid gap-2">
+                                        <Label className="font-bold text-zinc-600 px-1">Paid By (Optional)</Label>
+                                        <Select name="paidBy" defaultValue={defaultExpenseValues?.paidBy || "Pool"}>
+                                            <SelectTrigger className="rounded-2xl h-12 bg-zinc-50 border-zinc-100 px-5 font-bold">
+                                                <SelectValue placeholder="Select Payer" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-xl">
+                                                <SelectItem value="Pool">Common Pool 🏊‍♂️</SelectItem>
+                                                {tour.members?.map((m: any) => (
+                                                    <SelectItem key={m._id || m.name} value={m.name}>
+                                                        {m.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
                                     <Button type="submit" className="w-full bg-black text-white hover:bg-zinc-800 rounded-2xl h-14 font-black text-lg mt-4 shadow-xl active:scale-[0.98] transition-all" disabled={loading}>
-                                        {loading ? 'Adding...' : 'Save Expense'}
+                                        {loading ? 'Saving...' : (editingExpenseIndex !== null ? 'Update Expense' : 'Save Expense')}
                                     </Button>
                                 </form>
                             </DialogContent>
@@ -263,6 +384,9 @@ export function TourDetails({ tour }: { tour: any }) {
                                         <div className="font-bold text-zinc-900 truncate">{exp.name}</div>
                                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-400 tracking-tighter">
                                             <span>{exp.date ? format(new Date(exp.date), 'MMM d') : '-'}</span>
+                                            {exp.paidBy && exp.paidBy !== 'Pool' && (
+                                                <span className="text-indigo-500">• Paid by {exp.paidBy}</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -270,7 +394,19 @@ export function TourDetails({ tour }: { tour: any }) {
                                     <div className="text-right">
                                         <div className="font-black text-zinc-900">{tour.currency} {exp.price.toLocaleString()}</div>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors" onClick={() => handleDeleteExpense(i)}>
+                                    <Button
+                                        size="icon"
+                                        className="h-9 w-9 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                                        onClick={() => handleEditExpense(i)}
+                                    >
+                                        <Pencil className="w-4 h-4" />
+                                    </Button>
+
+                                    <Button
+                                        size="icon"
+                                        className="h-9 w-9 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                        onClick={() => handleDeleteExpense(i)}
+                                    >
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </div>
