@@ -25,6 +25,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                             id: user._id.toString(),
                             email: user.email,
                             name: user.name,
+                            passwordVersion: user.passwordVersion,
                         };
                     }
                 }
@@ -34,9 +35,27 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     ],
     callbacks: {
         ...authConfig.callbacks,
+        async jwt({ token, user, trigger, session }) {
+            if (user) {
+                token.sub = user.id;
+                token.passwordVersion = (user as any).passwordVersion;
+            }
+            // Optional: If you want to update the version in the token after password change without re-login
+            if (trigger === "update" && session?.passwordVersion !== undefined) {
+                token.passwordVersion = session.passwordVersion;
+            }
+            return token;
+        },
         async session({ session, token }) {
             if (token.sub && session.user) {
                 session.user.id = token.sub;
+
+                // Add DB check to invalidate other sessions
+                await connectDB();
+                const dbUser = await User.findById(token.sub).select('passwordVersion');
+                if (!dbUser || dbUser.passwordVersion !== token.passwordVersion) {
+                    return null as any; // This will effectively sign out the user
+                }
             }
             return session;
         },

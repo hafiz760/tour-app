@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, KeyRound } from 'lucide-react';
 import { signOut } from 'next-auth/react';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
 
 interface UserMenuProps {
     user: {
@@ -17,6 +18,7 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
     const handleSignOut = async () => {
         setIsLoggingOut(true);
@@ -44,6 +46,13 @@ export function UserMenu({ user }: UserMenuProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-zinc-100 mx-2" />
                 <DropdownMenuItem
+                    className="rounded-2xl font-black text-xs uppercase tracking-widest py-3 px-4 flex items-center gap-3 hover:bg-zinc-900 hover:text-white transition-colors cursor-pointer"
+                    onClick={() => setIsPasswordDialogOpen(true)}
+                >
+                    <KeyRound className="w-4 h-4" />
+                    Change Password
+                </DropdownMenuItem>
+                <DropdownMenuItem
                     className="rounded-2xl font-black text-xs uppercase tracking-widest py-3 px-4 flex items-center gap-3 hover:bg-zinc-900 hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleSignOut}
                     disabled={isLoggingOut}
@@ -52,6 +61,10 @@ export function UserMenu({ user }: UserMenuProps) {
                     {isLoggingOut ? 'Logging out...' : 'Log out'}
                 </DropdownMenuItem>
             </DropdownMenuContent>
+            <ChangePasswordDialog
+                open={isPasswordDialogOpen}
+                onOpenChange={setIsPasswordDialogOpen}
+            />
         </DropdownMenu>
     );
 }
